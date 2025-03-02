@@ -1,0 +1,14 @@
+re
+json
+urllib3
+pywin32
+wmi
+pywinrm
+psutil
+requests
+pandas
+matplotlib
+plotly
+openai
+pyyaml
+cryptography

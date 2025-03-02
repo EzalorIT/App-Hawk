@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Hawk - Reporting Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* General Body Styling */
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #121212;
+            color: #00FF00;
+            padding-top: 60px;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        h1, h2 {
+            color: #00FF00;
+            text-shadow: 0 0 15px #00FF00, 0 0 30px #00FF00;
+        }
+
+        footer {
+            padding: 30px;
+            text-align: center;
+            background-color: #222;
+            color: #00FF00;
+            font-size: 1rem;
+            margin-top: 50px;
+            border-top: 2px solid #00FF00;
+        }
+
+        footer ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        footer ul li {
+            display: inline;
+            margin-right: 20px;
+        }
+
+        footer a {
+            color: #00FF00;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: #FF4081;
+        }
+
+        /* Navbar Styling */
+        .navbar {
+            background-color: #1B1B1B;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            color: #00FF00 !important;
+            font-size: 2rem;
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px #00FF00;
+        }
+
+        .navbar-nav .nav-link {
+            color: #00FF00;
+            font-size: 1.2rem;
+            padding: 12px 15px;
+            transition: color 0.3s ease;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: #FF4081;
+        }
+
+        /* Report List Styling */
+        .list-group-item {
+            background-color: #1C1C1C;
+            border: 1px solid #00FF00;
+            color: #00FF00;
+            padding: 15px;
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 255, 0, 0.3);
+        }
+
+        .list-group-item:hover {
+            background-color: #333;
+            transform: translateY(-5px);
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0, 255, 0, 0.6);
+        }
+
+        /* Filter Form Styling */
+        .filter-form {
+            margin-bottom: 40px;
+        }
+
+        .filter-form .form-control {
+            background-color: #1C1C1C;
+            border: 1px solid #00FF00;
+            color: #00FF00;
+            border-radius: 50px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .filter-form .btn {
+            background-color: #00FF00;
+            color: #1C1C1C;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            box-shadow: 0 2px 4px rgba(0, 255, 0, 0.4);
+        }
+
+        .filter-form .btn:hover {
+            background-color: #FF4081;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0, 255, 0, 0.7);
+        }
+
+        /* Clear Filter Button Styling */
+        .clear-filter-btn {
+            background-color: #00FF00;
+            color: #1C1C1C;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            padding: 10px 20px;
+            margin-left: 10px;
+            box-shadow: 0 2px 4px rgba(0, 255, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .clear-filter-btn:hover {
+            background-color: #FF4081;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0, 255, 0, 0.7);
+        }
+
+        /* Terminal-like Animation for Titles */
+        @keyframes terminalText {
+            0% {
+                border-right: 2px solid #00FF00;
+                width: 0;
+            }
+            100% {
+                width: 100%;
+                border-right: 2px solid transparent;
+            }
+        }
+
+        h1 {
+            font-size: 3rem;
+            display: inline-block;
+            overflow: hidden;
+            white-space: nowrap;
+            width: 0;
+            animation: terminalText 4s steps(40) 1s forwards;
+        }
+
+        /* Section Styling */
+        section {
+            padding: 60px 0;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            color: #00FF00;
+            margin-bottom: 30px;
+            text-align: center;
+            text-shadow: 0 0 10px #00FF00;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navbar-brand {
+                font-size: 1.5rem;
+            }
+
+            .list-group-item {
+                font-size: 1rem;
+            }
+
+            footer {
+                font-size: 0.85rem;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+<!-- Header Section with Branding -->
+<nav class="navbar navbar-expand-lg navbar-light">
+    <div class="container">
+        <a class="navbar-brand" href="/">App Hawk</a> <!-- Hacker-style Branding -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="#reports">Reports</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#about">About Us</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#contact">Contact</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content Section -->
+<div class="container">
+    <h1 class="my-5">Reports</h1> <!-- Terminal text animation -->
+
+    <!-- Filter Section -->
+    <div class="filter-form">
+        <form class="d-flex" method="get" action="/">
+            <input class="form-control me-2" type="text" name="hostname" placeholder="Filter by Hostname" aria-label="Filter by Hostname">
+            <button class="btn" type="submit">Filter</button>
+            <a href="/" class="clear-filter-btn">Clear Filter</a>
+        </form>
+    </div>
+
+    <!-- Report List -->
+    <div class="list-group" id="reports">
+        {% for report in reports %}
+            <a href="{{ url_for('serve_report', filename=report) }}" class="list-group-item list-group-item-action">
+                {{ report }}
+            </a>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- About Us Section -->
+<section id="about">
+    <div class="container">
+        <h2 class="section-title">About Us</h2>
+        <p class="text-center">
+            Meet Goofball, Yoda, and Loomi—three technical wizards who are equal parts cloud technology gurus and professional problem-solvers, with a dash of humor thrown in for good measure.
+
+Goofball - The name says it all. With a mind that thinks outside the cloud and a sense of humor that’ll have you snickering at your server logs, Goofball’s your go-to when you need a solution that’s both cutting-edge and laugh-out-loud funny. No problem is too big or too small to make a pun about.
+
+Yoda - Do or do not, there is no try—unless you’re talking about technical architecture, in which case, Yoda has mastered the force. With a Jedi-level understanding of cloud technologies, Yoda’s been crafting scalable, efficient solutions for longer than you’ve been Googling "best cloud providers." Need to orchestrate complex systems? Yoda’s your guide.
+
+Loomi - The real MVP behind the scenes, Loomi knows the cloud like the back of their hand. Fast, efficient, and with an uncanny ability to spot the tiniest error in a million lines of code, Loomi brings precision to the chaos of cloud infrastructure. Their technical know-how is as sharp as their wit.
+
+Together, we’re the perfect storm of cloud expertise, technical architecture wizardry, and a sprinkle of humor. Whether you’re looking for reliable cloud strategies, secure system architecture, or just need someone to make you smile during a deployment, Goofball, Yoda, and Loomi have got your back.
+        </p>
+    </div>
+</section>
+
+<!-- Contact Section -->
+<section id="contact">
+    <div class="container">
+        <h2 class="section-title">Contact</h2>
+        <p class="text-center">
+            For inquiries or support, please reach out to us at <strong>ezalorit@gmail.com</strong>. 
+            We look forward to assisting you with your App Audit needs.
+        </p>
+    </div>
+</section>
+
+<!-- Footer Section -->
+<footer>
+    <p>&copy; 2025 App Hawk</p>
+    <ul>
+        <li><a href="#about">About Us</a></li>
+        <li><a href="#contact">Contact</a></li>
+        <li><a href="#">Privacy Policy</a></li>
+    </ul>
+</footer>
+
+<!-- Bootstrap JS & Popper.js -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+GYL LICENSE (Goofball, Yoda, Loomi)
+
+Version 1.0, March 2025
+
+Terms and Conditions
+
+1. Grant of License
+
+Permission is hereby granted, free of charge, to any person or entity (hereinafter referred to as "User") obtaining a copy of this software and associated documentation files (the "Software"), to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, subject to the terms outlined below.
+
+2. Three Pillars of GYL Licensing
+
+The GYL Licensing Model is built upon three guiding principles:
+
+1. Goofball Principle – Creativity and fun are encouraged! The Software must be used in a manner that fosters creativity, humor, or innovation. If your project is unnecessarily dull, you may be in violation of this license.
+
+
+2. Yoda Principle – Share wisdom and knowledge! Any significant modifications or improvements made to the Software must be shared publicly (except for confidential security enhancements). Teach, mentor, and pass on what you've learned.
+
+
+3. Loomi Principle – Ethical and responsible use is required! The Software may not be used in any way that promotes harm, exploitation, misinformation, or environmental destruction.
+
+
+
+3. Attribution
+
+Users must provide appropriate credit, linking to the original source or author when distributing, modifying, or incorporating the Software into other works. A notice must be included stating that the Software is licensed under the GYL License.
+
+4. No Warranty
+
+The Software is provided "as is," without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement. In no event shall the authors or contributors be liable for any claim, damages, or other liability arising from the use of the Software.
+
+5. Revocation Clause
+
+If a User is found violating the Goofball, Yoda, or Loomi principles, the authors reserve the right to revoke this license for the User in question. Continuous misuse or unethical behavior will result in permanent restriction from using the Software.
+
+6. Contributions
+
+Any contributions made to the Software shall be licensed under this same GYL License, ensuring that all modifications and additions adhere to the three pillars.
+
+7. Acknowledgment of Absurdity
+
+This license was written with a balance of legal clarity and lightheartedness. If you’re questioning whether a specific use of the Software aligns with this license, ask yourself:
+"Would a Goofball, Yoda, and Loomi approve?"
+
+If the answer is no, reconsider your actions.
+
+
+---
+
+Final Notes
+
+This license aims to balance openness, fun, ethical responsibility, and the sharing of knowledge.

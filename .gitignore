@@ -1,0 +1,16 @@
+# Ignore secret.key file across all directories
+**/secret.key
+
+# Ignore Python bytecode files
+*.pyc
+__pycache__/
+
+# Ignore virtual environment directories
+venv/
+env/
+
+# Ignore log files
+*.log
+
+# Ignore environment variables file
+.env
