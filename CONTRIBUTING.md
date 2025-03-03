@@ -35,7 +35,7 @@ If you find a bug, security vulnerability, or have a feature request:
   ```bash
   git checkout -b feature-branch-name
   ```
-- Make sure your code follows the best practices outlined in the [Coding Standards](#coding-standards).
+- Make sure your code follows the best practices outlined in the [Coding Standards](https://github.com/EzalorIT/App-Hawk/blob/main/CODINGSTANDARDS.md).
 
 #### ✨ Making a Pull Request (PR)
 1. **Commit your changes**:
@@ -55,6 +55,7 @@ If you find a bug, security vulnerability, or have a feature request:
 - Use meaningful variable and function names.
 - Add comments where necessary for clarity.
 - Run tests before submitting PRs.
+- Refer to detailed coding standards https://github.com/EzalorIT/App-Hawk/blob/main/CODINGSTANDARDS.md
 
 ### 4. Writing Tests
 - We use `pytest` for testing.
