@@ -1,4 +1,3 @@
-```markdown
 # App Hawk
 
 **App Hawk** is an AI-based auditing and reporting tool designed for auditing applications across Windows devices. It uses a modular architecture to collect, obfuscate, analyze, and report on various system details such as installed applications, their versions, installation methods, and compatibility with `winget`. The tool is designed for efficiency, privacy, and scalability.
