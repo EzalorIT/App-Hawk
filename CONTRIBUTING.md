@@ -21,7 +21,7 @@ Thank you for considering contributing to **App Hawk**! We welcome contributions
 
 ### 1. Reporting Issues
 If you find a bug, security vulnerability, or have a feature request:
-- Check if it has already been reported in the [Issues](https://github.com/your-username/app-hawk/issues) section.
+- Check if it has already been reported in the [Issues](https://github.com/EzalorIT/app-hawk/issues) section.
 - If not, create a **detailed issue report**, including:
   - A clear and descriptive title.
   - Steps to reproduce the issue.
@@ -68,7 +68,7 @@ If you find a bug, security vulnerability, or have a feature request:
 By contributing to **App Hawk**, you agree that your contributions will be licensed under the [GYL License](https://github.com/EzalorIT/App-Hawk/blob/main/LICENSE.txt).
 
 ## 📧 Need Help?
-For questions, feel free to open a [Discussion](https://github.com/your-username/app-hawk/discussions) or contact the maintainers via GitHub Issues.
+For questions, feel free to open a [Discussion](https://github.com/EzalorIT/app-hawk/discussions) or contact the maintainers via GitHub Issues.
 
 Happy Coding! 🚀
 
