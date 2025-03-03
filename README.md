@@ -136,7 +136,7 @@ Make sure to set the following environment variables before running the tool:
 
 ## License
 
-App Hawk is licensed under the **GYL Open Source License**. See the [LICENSE](LICENSE) file for more information.
+App Hawk is licensed under the **GYL Open Source License**. See the [LICENSE](https://github.com/EzalorIT/App-Hawk/blob/main/LICENSE.txt) file for more information.
 
 ## Contributing
 
@@ -144,7 +144,7 @@ We welcome contributions to improve App Hawk! If you would like to contribute, p
 
 ## Contact
 
-For any inquiries or support, feel free to open an issue in the GitHub repository or contact us at [your-email@example.com].
+For any inquiries or support, feel free to open an issue in the GitHub repository or contact us at ezalorit@gmail.com
 
 ---
 
