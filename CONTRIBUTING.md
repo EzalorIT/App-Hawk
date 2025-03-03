@@ -55,7 +55,7 @@ If you find a bug, security vulnerability, or have a feature request:
 - Use meaningful variable and function names.
 - Add comments where necessary for clarity.
 - Run tests before submitting PRs.
-- Refer to detailed coding standards https://github.com/EzalorIT/App-Hawk/blob/main/CODINGSTANDARDS.md
+- Refer to detailed coding standards [Coding Standards](https://github.com/EzalorIT/App-Hawk/blob/main/CODINGSTANDARDS.md)
 
 ### 4. Writing Tests
 - We use `pytest` for testing.
