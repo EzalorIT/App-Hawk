@@ -3,185 +3,155 @@ param (
 )
 
 function Invoke-SequentialExecution {
-    param (
-        [string]$OutputPath
-    )
+    param ([string]$OutputPath)
 
     if (-not (Test-Path -Path $OutputPath)) {
-        Write-Host "Output path does not exist. Creating directory at $OutputPath"
-        New-Item -Path $OutputPath -ItemType Directory
+        New-Item -Path $OutputPath -ItemType Directory | Out-Null
     }
     
-    $dateString = (Get-Date).ToString('ddMMyyyy')
+    $dateString = (Get-Date).ToString('yyyyMMdd')
     $hostname = $env:COMPUTERNAME
     
-    function Extract-ApplicationEvents {
+    function Get-ApplicationEvents {
+        $startTime = (Get-Date).AddMinutes(-15)
 
-        param ([string]$LogType = 'Application')
-        Write-Host "Starting Extract-ApplicationEvents function to extract logs from $LogType log..."        
-        $events = Get-WinEvent -LogName $LogType | Where-Object { $_.TimeCreated -gt (Get-Date).AddDays(-1) }
-        Write-Host "Completed Extract-ApplicationEvents function with $($events.Count) events retrieved."
-        
-        return $events
-    }
+        # Retrieve the latest 1000 events from the Application log within the time range
+        $events = Get-WinEvent -LogName Application -MaxEvents 1000 | Where-Object { $_.TimeCreated -ge $startTime }
     
-    function Get-InstalledAppsRegistry {
-        Write-Host "Starting Get-InstalledAppsRegistry function to retrieve installed applications from the Windows registry..."
-        $registryPath = "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
-        $installedApps = @()
-        $hives = @('HKLM', 'HKCU')
-
-        foreach ($hive in $hives) {
-            try {
-                $keyPath = "$hive\$registryPath"
-                $keys = Get-ChildItem -Path "Registry::$keyPath" -Recurse
-                foreach ($key in $keys) {
-                    try {
-                        $appName = (Get-ItemProperty -Path $key.PSPath).DisplayName
-                        $appVersion = (Get-ItemProperty -Path $key.PSPath).DisplayVersion
-                        $installedApps += [PSCustomObject]@{ Name = $appName; Version = $appVersion; DeliveryMechanism = "App Provider" }
-                    } 
-                    catch {
-                        continue
+        $eventData = @()
+    
+        foreach ($event in $events) {
+            $message = $event.Message
+    
+            if ($message) {
+                # Extract details using refined regex patterns
+                $productName = if ($message -match 'Product Name:\s*([^\r\n]+)') { $matches[1] -replace '^.*?:\s*', '' -replace '\s*$', '' } else { $null }
+                $version = if ($message -match 'Product Version:\s*([\d\.]+)') { $matches[1] } else { $null }
+                $deliveryMechanism = if ($message -match 'Delivery Mechanism:\s*([^\r\n]+)') { $matches[1] -replace '^.*?:\s*', '' -replace '\s*$', '' } else { $null }
+    
+                # Only add entries that have at least one valid field
+                if ($productName -or $version -or $deliveryMechanism) {
+                    $eventData += [PSCustomObject]@{
+                        Name = $productName
+                        Version = $version
+                        DeliveryMechanism = $deliveryMechanism
                     }
                 }
-            } 
-            catch {
-                continue
             }
         }
-
-        Write-Host "Completed Get-InstalledAppsRegistry function with $($installedApps.Count) applications retrieved."
-        return $installedApps
-    }
-
     
-    function Get-InstalledAppsWMI {
-        Write-Host "Starting Get-InstalledAppsWMI function to retrieve installed applications using WMI..."
+        return $eventData
+    }
+    
+    
 
+    function Get-InstalledAppsRegistry {
+        $registryPath = "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
         $installedApps = @()
-        $wmiQuery = "SELECT * FROM Win32_Product"
-        $products = Get-WmiObject -Query $wmiQuery
-
-        foreach ($product in $products) {
+        foreach ($hive in @('HKLM', 'HKCU')) {
             try {
-                $installedApps += [PSCustomObject]@{
-                    Name = $product.Name
-                    Version = $product.Version
-                    Manufacturer = $product.Manufacturer
-                    DeliveryMechanism = "App Provider"
+                Get-ChildItem -Path "Registry::$hive\$registryPath" -Recurse | ForEach-Object {
+                    try {
+                        $app = Get-ItemProperty -Path $_.PSPath | Select-Object -Property DisplayName, DisplayVersion, InstallSource
+                        if ($app.DisplayName) {
+                            $deliveryMechanism = if ($app.InstallSource) {"Manual"} else {"App Provider"}
+                            $installedApps += [PSCustomObject]@{ Name = $app.DisplayName; Version = $app.DisplayVersion; DeliveryMechanism = $deliveryMechanism }
+                        }
+                    } catch {}
                 }
-            } 
-            catch 
-            {
-                continue
-            }
+            } catch {}
         }
-
-        Write-Host "Completed Get-InstalledAppsWMI function with $($installedApps.Count) applications retrieved."
         return $installedApps
     }
 
+    function Get-InstalledAppsWMI {
+        $installedApps = @()
+
+        # Fetch apps installed via Windows Installer (MSI)
+        $msiApps = Get-WmiObject -Query "SELECT * FROM Win32_Product" |
+            Select-Object Name, Version, @{Name="DeliveryMechanism"; Expression={"MSI (Windows Installer)"}}
+        $installedApps += $msiApps
+    
+        # Fetch apps installed via Microsoft Store (AppX/MSIX)
+        $appxApps = Get-AppxPackage |
+            Select-Object Name, Version, @{Name="DeliveryMechanism"; Expression={"MSIX/AppX (Microsoft Store)"}}
+        $installedApps += $appxApps
+    
+        # Fetch registry-based installed applications (EXE-based or other installers)
+        $regPaths = @(
+            "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*"
+        )
+        
+        foreach ($path in $regPaths) {
+            if (Test-Path $path) {
+                $regApps = Get-ItemProperty $path |
+                    Select-Object DisplayName, DisplayVersion, @{Name="DeliveryMechanism"; Expression={"EXE (Registry-based Installation)"}}
+                $installedApps += $regApps
+            }
+        }
+    
+        return $installedApps | Sort-Object Name
+    }
     
     function Get-InstalledAppsWinget {
-        Write-Host "Starting Get-InstalledAppsWinget function to retrieve installed applications via WinGet..."
-
         $installedApps = @()
-        try {    
-            $output = winget list
-            $lines = $output -split "`r`n"
-            
-            foreach ($line in $lines[3..$lines.Length]) {
-                $appInfo = $line -split '\s+'
-                if ($appInfo.Length -ge 2) {
-                    $installedApps += [PSCustomObject]@{ Name = $appInfo[0]; Version = $appInfo[1]; DeliveryMechanism = "WinGet" }
+        try {
+            $output = winget list | Select-String "^(.+?)\s+([0-9]+(\.[0-9]+)*)"
+            foreach ($line in $output) {
+                $match = $line -match "^(.+?)\s+([0-9]+(\.[0-9]+)*)"
+                if ($match) {
+                    $installedApps += [PSCustomObject]@{ Name = $matches[1].Trim(); Version = $matches[2]; DeliveryMechanism = "Winget" }
                 }
             }
-        } 
-        catch {
-            Write-Host "Error running WinGet: $_"
-        }
-
-        Write-Host "Completed Get-InstalledAppsWinget function with $($installedApps.Count) applications retrieved."
+        } catch {}
         return $installedApps
     }
-
     
+    function Get-RunningProcesses {
+        $processList = Get-Process | Select-Object ProcessName, Id, Path |
+        ForEach-Object {
+            try {
+                $version = "Unknown"
+                if ($_.Path) {
+                    $version = (Get-Item $_.Path).VersionInfo.FileVersion
+                }
+                [PSCustomObject]@{ Name = $_.ProcessName; Version = $version; DeliveryMechanism = "NA" }
+            } catch {}
+        }
+        return $processList
+    }
 
     function Append-ChangedData {
-        param (
-            [string]$FilePath,
-            [array]$NewData,
-            [string[]]$UniqueFields
-        )
-
-        $existingDataSet = @{}
-        
-        if (Test-Path $FilePath) {            
-            $existingData = Import-Csv -Path $FilePath
-
-            foreach ($row in $existingData) {                
-                $key = ""
-                foreach ($field in $UniqueFields) {
-                    $key += [string]$row.$field + "_"
-                }         
-
-                $key = $key.TrimEnd('_')
+        param ([string]$FilePath, [array]$NewData, [string[]]$UniqueFields)
+        $existingDataSet = @{ }
+        if (Test-Path $FilePath) {
+            Import-Csv -Path $FilePath | ForEach-Object {
+                $key = ($UniqueFields | ForEach-Object { $_ + $_.($_) }) -join "_"
                 $existingDataSet[$key] = $true
             }
-
-            Write-Host "Loaded existing data. Found $($existingDataSet.Count) unique entries in $FilePath."
-        } else {
-            Write-Host "File $FilePath does not exist, creating new file."
         }
-        
-        $newRows = @()
-        foreach ($row in $NewData) {
-            $key = ""
-            foreach ($field in $UniqueFields) {
-                $key += [string]$row.$field + "_"
-            }        
-            $key = $key.TrimEnd('_')
-
-            if (-not $existingDataSet.ContainsKey($key)) {
-                $newRows += $row
-            }
+        $newRows = $NewData | Where-Object {
+            $key = ($UniqueFields | ForEach-Object { $_ + $_.($_) }) -join "_"
+            -not $existingDataSet.ContainsKey($key)
         }
-
         if ($newRows.Count -gt 0) {
             $newRows | Export-Csv -Path $FilePath -NoTypeInformation -Append
-            Write-Host "$($newRows.Count) new rows appended to $FilePath"
-        } 
-        else 
-        {
-            Write-Host "No new data to append to $FilePath"
         }
     }
 
-
-    Write-Host "Starting sequential execution..."
-
-    $events = Extract-ApplicationEvents
+    $events = Get-ApplicationEvents
     $installedAppsRegistry = Get-InstalledAppsRegistry
     $installedAppsWMI = Get-InstalledAppsWMI
     $installedAppsWinget = Get-InstalledAppsWinget
-
-    if (-not (Test-Path -Path $OutputPath)) {
-        Write-Host "Output path does not exist. Creating directory at $OutputPath"
-        New-Item -Path $OutputPath -ItemType Directory
-    }
-
-    $eventsFilePath = "$OutputPath\$hostname`_ApplicationEvents_$dateString.csv"
-    $installedAppsRegistryFilePath = "$OutputPath\$hostname`_InstalledAppsRegistry_$dateString.csv"
-    $installedAppsWMIFilePath = "$OutputPath\$hostname`_InstalledAppsWMI_$dateString.csv"
-    $installedAppsWingetFilePath = "$OutputPath\$hostname`_InstalledAppsWinget_$dateString.csv"
-
-    $uniqueFields = @('Name', 'Version')
-
-    Append-ChangedData -FilePath $eventsFilePath -NewData $events -UniqueFields $uniqueFields
-    Append-ChangedData -FilePath $installedAppsRegistryFilePath -NewData $installedAppsRegistry -UniqueFields $uniqueFields
-    Append-ChangedData -FilePath $installedAppsWMIFilePath -NewData $installedAppsWMI -UniqueFields $uniqueFields
-    Append-ChangedData -FilePath $installedAppsWingetFilePath -NewData $installedAppsWinget -UniqueFields $uniqueFields
+    $runningProcesses = Get-RunningProcesses
+    
+    Append-ChangedData "$OutputPath\$hostname`_ApplicationEvents.csv" $events @("Name", "Version")
+    Append-ChangedData "$OutputPath\$hostname`_InstalledAppsRegistry.csv" $installedAppsRegistry @("Name", "Version")
+    Append-ChangedData "$OutputPath\$hostname`_InstalledAppsWMI.csv" $installedAppsWMI @("Name", "Version")
+    Append-ChangedData "$OutputPath\$hostname`_InstalledAppsWinget.csv" $installedAppsWinget @("Name", "Version")
+    Append-ChangedData "$OutputPath\$hostname`_RunningProcesses.csv" $runningProcesses @("Name", "Version")
 }
 
 Invoke-SequentialExecution -OutputPath $outputPath

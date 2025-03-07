@@ -12,3 +12,5 @@ plotly
 openai
 pyyaml
 cryptography
+tiktoken
+boto3

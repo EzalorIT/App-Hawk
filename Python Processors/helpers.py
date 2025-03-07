@@ -93,3 +93,186 @@ def get_installed_apps_winget():
 
     print(f"\nCompleted get_installed_apps_winget function with {len(installed_apps)} applications retrieved.")
     return installed_apps
+
+def analyze_with_openai_nochunk(installed_apps, events):
+    # Obfuscate sensitive information
+    obfuscated_apps = {app: {key: obfuscate_sensitive_info(value) if isinstance(value, str) else value
+                             for key, value in data.items()}
+                       for app, data in installed_apps.items()}
+
+    obfuscated_events = [obfuscate_sensitive_info(str(event)) for event in events]    
+
+    prompt = f"""
+    Please analyze the following obfuscated data:
+
+    Installed Applications: {json.dumps(obfuscated_apps, indent=2)}
+
+    Event Logs: {json.dumps(obfuscated_events, indent=2)}    
+
+    For each application, check the following:
+    1. The app name and version.
+    2. The delivery mechanism.
+    3. Whether the app is available in WinGet.
+
+    Merge all the Apps and discovered apps from the Installed Applications Event Logs. Do not miss any app installation.
+
+    Merge all the responses and provide a response in the format:
+    AppName, Version, Delivery Mechanism, Is WinGet Compatible
+    """
+
+    try:
+        response = openai.ChatCompletion.create(
+            model=os.getenv("LLM_MODEL", "gpt-3.5-turbo"), 
+            messages=[
+                {"role": "system", "content": "You are a data scientist that analyzes System Events and applications."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=2000,
+            temperature=0.2
+        )
+        print(f"OpenAI Response: {response}")  
+
+        if 'choices' in response and len(response['choices']) > 0:
+            content = response['choices'][0].get('message', {}).get('content', '')
+            return content if content else "No content found in response."
+        else:
+            print(f"Unexpected response format: {response}")
+            return "Error: Unexpected response format."
+    except Exception as e:
+        print(f"Error analyzing with OpenAI: {e}")
+        return f"Error analyzing: {e}"
+
+    return response
+
+def analyze_with_openai(installed_apps, events):
+    obfuscated_apps = {app: {key: obfuscate_sensitive_info(value) if isinstance(value, str) else value
+                             for key, value in data.items()}
+                       for app, data in installed_apps.items()}
+
+    obfuscated_events = [obfuscate_sensitive_info(str(event)) for event in events]    
+    
+    
+    def chunk_data(data, chunk_size=10):
+        return [data[i:i + chunk_size] for i in range(0, len(data), chunk_size)]
+    
+    app_items = list(obfuscated_apps.items())
+    event_items = list(obfuscated_events)        
+    app_chunks = chunk_data(app_items, chunk_size=50)  
+    event_chunks = chunk_data(event_items, chunk_size=50)
+    
+
+    responses = []
+    for app_chunk, event_chunk in zip(app_chunks, event_chunks):        
+        prompt = f"""
+        Please analyze the following obfuscated data:
+        
+        Installed Applications: {json.dumps(dict(app_chunk), indent=2)}
+        
+        Event Logs: {json.dumps(event_chunk, indent=2)}    
+        
+        
+        For each application, check the following:
+        1. The app name and version.
+        2. The delivery mechanism.
+        3. Whether the app is available in WinGet.
+        
+        Merge all the Apps and discovered apps from the Installed Applications Event Logs. Do not miss any app installation.
+        
+        Merge all the responses and provide a response in the format:
+        AppName, Version, Delivery Mechanism, Is WinGet Compatible
+        """
+
+        try:
+            response = openai.ChatCompletion.create(
+                model=os.getenv("LLM_MODEL", "gpt-3.5-turbo"), 
+                messages=[{"role": "system", "content": "You are a data scientist that analyzes System Events and applications."},
+                          {"role": "user", "content": prompt}],
+                max_tokens=2000,
+                temperature=0.2
+            )
+            print(f"OpenAI Response: {response}")  
+            
+            if 'choices' in response and len(response['choices']) > 0:
+                content = response['choices'][0].get('message', {}).get('content', '')
+                if content:
+                    responses.append(content)
+                else:
+                    print("No content found in response.")
+                    responses.append("No content found.")
+            else:
+                print(f"Unexpected response format: {response}")
+                responses.append("Error: Unexpected response format.")
+        except Exception as e:
+            print(f"Error analyzing chunk with OpenAI: {e}")
+            responses.append(f"Error analyzing chunk: {e}")
+
+    # Prompt AI to merge all the responses in a format and then return the responses 
+    prompt = f"""
+    Input: {json.dumps(responses, indent=2)}    
+    Please merge all the responses and provide a response in the format:        
+    AppName, Version, Delivery Mechanism, Is WinGet Compatible
+    """
+    
+    try:
+        responses = openai.ChatCompletion.create(
+            model=os.getenv("LLM_MODEL", "gpt-3.5-turbo"), 
+            messages=[{"role": "system", "content": "You are a data engineer that produce merged data sets as CSV files."},
+                      {"role": "user", "content": prompt}],
+            max_tokens=2000,
+            temperature=0.2
+        )
+        print(f"OpenAI Response: {responses}")
+    except Exception as e:
+        print(f"Error merging responses with OpenAI: {e}")
+        
+    return responses
+
+def generate_reports(csv_filename, base_directory, computer_name):
+    print(f"Starting generate_reports function from {csv_filename}...")
+
+    try:
+        df = pd.read_csv(csv_filename, encoding='utf-8')
+    except UnicodeDecodeError:
+        print("UnicodeDecodeError: Trying with 'latin1' encoding")
+        df = pd.read_csv(csv_filename, encoding='latin1')
+    
+    fig = make_subplots(
+        rows=2, cols=2, 
+        subplot_titles=[
+            "Distribution of Apps by Delivery Mechanism",
+            "Number of Apps by Delivery Mechanism",
+            "Apps by WinGet Compatibility",
+            "App Versions Distribution"
+        ],
+        specs=[
+            [{'type': 'pie'}, {'type': 'bar'}],  
+            [{'type': 'bar'}, {'type': 'scatter'}]  
+        ]
+    )
+    
+    delivery_counts = df['Delivery Mechanism'].value_counts()
+    pie_chart = go.Pie(labels=delivery_counts.index, values=delivery_counts, hole=0.3)
+    fig.add_trace(pie_chart, row=1, col=1)
+        
+    bar_chart = go.Bar(x=delivery_counts.index, y=delivery_counts, name='Delivery Mechanism')
+    fig.add_trace(bar_chart, row=1, col=2)
+    
+    winget_compatible_counts = df['Is WinGet Compatible'].value_counts()
+    winget_bar_chart = go.Bar(x=winget_compatible_counts.index, y=winget_compatible_counts, name='WinGet Compatibility')
+    fig.add_trace(winget_bar_chart, row=2, col=1)
+    
+    version_counts = df['Version'].value_counts().head(10)  
+    version_scatter_chart = go.Scatter(x=version_counts.index, y=version_counts, mode='markers', name='Version Counts')
+    fig.add_trace(version_scatter_chart, row=2, col=2)
+        
+    fig.update_layout(
+        height=800,
+        width=1000,
+        title_text="App Analysis Reports",
+        showlegend=False
+    )    
+    reporting_path = os.path.join(base_directory, f"ReportingData\\{computer_name}_report.html") 
+    fig.write_html(reporting_path)
+    print("Interactive HTML report saved to {reporting_path}")
+
+    print("Reports generated successfully.")
